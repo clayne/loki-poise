@@ -394,7 +394,7 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
                     break;
                 }
                 else {
-                    a_result = CalculateMaxPoise(aggressor);
+                    a_result = CalculateMaxPoise(aggressor) * 0.5f;
                 }
                 a_result *= ptr->Hand2Hand;
                 break;
@@ -454,12 +454,14 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
             RE::TESRace* a_mapRace = idx.first;
             if (aggressor && a_actorRace && a_mapRace) {
                 if (a_actorRace->formID == a_mapRace->formID) {
-                    if (aggressor->HasKeyword(ptr->kCreature) || aggressor->HasKeyword(ptr->kDwarven)) {
+                    a_result = idx.second[1];
+                    /*if (aggressor->HasKeyword(ptr->kCreature) || aggressor->HasKeyword(ptr->kDwarven)) {
                         a_result = idx.second[1];
                     }
                     else {
                         a_result *= idx.second[1];
                     }
+                    */// retcon my whole shit because modded creatures can just not have these keywords THANKS MIHAIL
                     break;
                 }
             }
@@ -516,12 +518,14 @@ float Loki::PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
             RE::TESRace* a_mapRace = idx.first;
             if (a_actorRace && a_mapRace) {
                 if (a_actorRace->formID == a_mapRace->formID) {
-                    if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
+                    a_result = idx.second[0];
+                    /*if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
                         a_result = idx.second[0];
                     } 
                     else {
                         a_result *= idx.second[0];
                     }
+                    */// mihail just so mean
                     break;
                 }
             }
@@ -557,6 +561,27 @@ bool Loki::PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk)
         return _IsActorKnockdown(a_this, a_unk);
     }
     static RE::BSFixedString str = NULL;
+
+    if ((a_this->IsPlayerRef() && ptr->PlayerRagdollReplacer) || 
+        (!a_this->IsPlayerRef() && ptr->NPCRagdollReplacer)) {
+
+        float knockdownDirection = 0.00f;
+        a_this->GetGraphVariableFloat("staggerDirection", knockdownDirection);
+        if (knockdownDirection > 0.25f && knockdownDirection < 0.75f) {
+            str = ptr->poiseLargestFwd;
+        } else {
+            str = ptr->poiseLargestBwd;
+        }
+        if (TrueHUDControl::GetSingleton()->g_trueHUD) {
+            TrueHUDControl::GetSingleton()->g_trueHUD->
+                FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
+        }
+        a_this->NotifyAnimationGraph(str);
+        return false;
+
+    }
+
+    /*
     if (a_this->IsPlayerRef() && ptr->PlayerRagdollReplacer) {
         float knockdownDirection = 0.00f;
         a_this->GetGraphVariableFloat("staggerDirection", knockdownDirection);
@@ -587,6 +612,8 @@ bool Loki::PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk)
         a_this->NotifyAnimationGraph(str);
         return false;
     }
+    */
+
     return _IsActorKnockdown(a_this, a_unk);
 
 }
